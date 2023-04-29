@@ -9,7 +9,8 @@ pub const ParserError = error{
 pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
     return struct {
         const Self = @This();
-        pub const ParserResult = ParserError!struct { output: O, remain: R };
+        pub const ResultTuple = struct { output: O, remain: R };
+        pub const ParserResult = ParserError!ResultTuple;
         pub const ParserFunction = *const fn (I, ?[]align(16) u8) ParserResult;
 
         delegated_data: ?[]align(16) u8,
