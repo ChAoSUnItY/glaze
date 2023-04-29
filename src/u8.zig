@@ -1,12 +1,8 @@
+const std = @import("std");
+const Allocator = std.mem.Allocator;
 const defs = @import("defs.zig");
 
-pub fn ImmediateCharParser(comptime I: type, comptime R: type) type {
-    return defs.ImmediateParser(I, u8, R);
-}
-
-pub fn DelegateCharParser(comptime I: type, comptime R: type, comptime D: type) type {
-    return defs.DelegateParser(I, u8, R, D);
-}
+pub const CharParser = defs.Parser([]const u8, u8, []const u8);
 
 fn first_char(input: []const u8) defs.ParserError!u8 {
     if (input.len > 0) {
@@ -16,11 +12,10 @@ fn first_char(input: []const u8) defs.ParserError!u8 {
     }
 }
 
-fn _tag(tag_char: u8, input: []const u8) defs.ParserResult(u8, []const u8) {
-    const char = try first_char(input);
-    if (char == tag_char) {
+fn _tag(input: []const u8, ctx: ?*anyopaque) defs.ParserResult(u8, []const u8) {
+    if (@ptrCast(*u8, ctx).* == try first_char(input)) {
         return .{
-            .output = char,
+            .output = input[0],
             .remain = input[1..],
         };
     } else {
@@ -28,19 +23,15 @@ fn _tag(tag_char: u8, input: []const u8) defs.ParserResult(u8, []const u8) {
     }
 }
 
-pub fn tag(tag_char: u8) DelegateCharParser([]const u8, []const u8, u8) {
-    return DelegateCharParser([]const u8, []const u8, u8){
-        .delegated_data = tag_char,
-        .parser = _tag,
-    };
+pub fn tag(allocator: *const Allocator, char: u8) !CharParser {
+    return try CharParser.init_delegated(allocator, char, _tag);
 }
 
-fn _alpha(input: []const u8) defs.ParserResult(u8, []const u8) {
-    const char = try first_char(input);
-    switch (char) {
+fn _alpha(input: []const u8, _: ?*anyopaque) defs.ParserResult(u8, []const u8) {
+    switch (try first_char(input)) {
         'A'...'Z', 'a'...'z' => {
             return .{
-                .output = char,
+                .output = input[0],
                 .remain = input[1..],
             };
         },
@@ -50,6 +41,6 @@ fn _alpha(input: []const u8) defs.ParserResult(u8, []const u8) {
     }
 }
 
-pub fn alpha() ImmediateCharParser([]const u8, []const u8) {
-    return ImmediateCharParser([]const u8, []const u8){ .parser = _alpha };
+pub fn alpha() CharParser {
+    return CharParser.init_immediate(_alpha);
 }

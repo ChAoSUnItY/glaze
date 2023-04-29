@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 pub const ParserError = error{
     IncompleteData,
@@ -9,36 +10,48 @@ pub fn ParserResult(comptime O: type, comptime R: type) type {
     return ParserError!struct { output: O, remain: R };
 }
 
-/// An ImmediateParser is used to simple parsing operation without any context requirement.
-pub fn ImmediateParser(comptime I: type, comptime O: type, comptime R: type) type {
+pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
     return struct {
-        parser: *const fn (I) ParserResult(O, R),
+        const Self = @This();
+        const ParserFunction = *const fn (I, ?*anyopaque) ParserResult(O, R);
 
-        pub fn invoke(self: *const ImmediateParser(I, O, R), input: I) ParserResult(O, R) {
-            return try self.parser(input);
+        delegated_data: ?*anyopaque,
+        data_size: u32,
+        allocator: ?*const Allocator,
+        parser: ParserFunction,
+
+        pub fn init_immediate(parser: ParserFunction) Self {
+            return .{
+                .delegated_data = null,
+                .data_size = 0,
+                .allocator = null,
+                .parser = parser,
+            };
         }
-    };
-}
 
-pub fn new_immediate_parser(comptime I: type, comptime O: type, comptime R: type, parser: *const fn (I) ParserResult(O, R)) ImmediateParser(I, O, R) {
-    return ImmediateParser(I, O, R){ .parser = parser };
-}
+        pub fn init_delegated(allocator: *const Allocator, data: anytype, parser: ParserFunction) !Self {
+            var delegated_data = try allocator.*.create(@TypeOf(data));
+            delegated_data.* = data;
 
-/// A DelegateParser is used to operate more complicate parsing operation that requires runtime context.
-pub fn DelegateParser(comptime I: type, comptime O: type, comptime R: type, comptime D: type) type {
-    return struct {
-        delegated_data: D,
-        parser: *const fn (D, I) ParserResult(O, R),
-
-        pub fn invoke(self: *const DelegateParser(I, O, R, D), input: I) ParserResult(O, R) {
-            return try self.parser(self.delegated_data, input);
+            return .{
+                .delegated_data = delegated_data,
+                .data_size = @sizeOf(@TypeOf(data)),
+                .allocator = allocator,
+                .parser = parser,
+            };
         }
-    };
-}
 
-pub fn new_delegate_parser(comptime I: type, comptime O: type, comptime R: type, comptime D: type, delegated_data: D, parser: *const fn (I) ParserResult(O, R)) DelegateParser(I, O, R, D) {
-    return DelegateParser(I, O, R, D){
-        .delegated_data = delegated_data,
-        .parser = parser,
+        pub fn invoke(self: *const Self, input: I) ParserResult(O, R) {
+            defer self.deallocate_data();
+            const result = try self.parser(input, self.delegated_data);
+            return result;
+        }
+
+        fn deallocate_data(self: *const Self) void {
+            if (self.delegated_data) |delegated_data| {
+                const mem = @ptrCast([*]u8, delegated_data)[0..self.data_size];
+                self.allocator.?.*.free(mem);
+            }
+        }
     };
 }
