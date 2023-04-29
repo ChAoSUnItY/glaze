@@ -13,46 +13,46 @@ pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
         pub const ParserResult = ParserError!ResultTuple;
         pub const ParserFunction = *const fn (I, ?[]align(16) u8) ParserResult;
 
-        delegated_data: ?[]align(16) u8,
+        delegatedData: ?[]align(16) u8,
         allocator: ?Allocator,
         parser: ParserFunction,
 
-        pub fn init_immediate(parser: ParserFunction) Self {
+        pub fn initImmediate(parser: ParserFunction) Self {
             return .{
-                .delegated_data = null,
+                .delegatedData = null,
                 .allocator = null,
                 .parser = parser,
             };
         }
 
-        pub fn init_delegated(allocator: Allocator, data: anytype, parser: ParserFunction) !Self {
+        pub fn initDelegated(allocator: Allocator, data: anytype, parser: ParserFunction) !Self {
             const T = @TypeOf(data);
-            const delegated_data = try allocator.alignedAlloc(u8, 16, @sizeOf(T));
-            errdefer allocator.free(delegated_data);
-            @ptrCast(*T, delegated_data.ptr).* = data;
+            const delegatedData = try allocator.alignedAlloc(u8, 16, @sizeOf(T));
+            errdefer allocator.free(delegatedData);
+            @ptrCast(*T, delegatedData.ptr).* = data;
 
             return .{
-                .delegated_data = delegated_data,
+                .delegatedData = delegatedData,
                 .allocator = allocator,
                 .parser = parser,
             };
         }
 
         pub fn invoke(self: *const Self, input: I) ParserResult {
-            defer self.deallocate_data();
-            return try self.parser(input, self.delegated_data);
+            defer self.deallocateData();
+            return try self.parser(input, self.delegatedData);
         }
 
-        fn deallocate_data(self: *const Self) void {
-            if (self.delegated_data) |delegated_data| {
-                self.allocator.?.free(delegated_data);
+        fn deallocateData(self: *const Self) void {
+            if (self.delegatedData) |delegatedData| {
+                self.allocator.?.free(delegatedData);
             }
         }
     };
 }
 
-pub fn cast_deref(comptime T: type, data_slice: ?[]align(16) u8) ?T {
-    if (data_slice) |slice| {
+pub fn castDeref(comptime T: type, dataSlice: ?[]align(16) u8) ?T {
+    if (dataSlice) |slice| {
         return @ptrCast(*T, slice.ptr).*;
     } else {
         return null;
