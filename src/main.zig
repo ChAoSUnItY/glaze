@@ -1,8 +1,8 @@
 const std = @import("std");
-const defs = @import("defs.zig");
 const char_parser = @import("u8.zig");
+const testing = std.testing;
 
-pub fn seqeunced(input: []const u8, parsers: []const char_parser.CharParser) defs.ParserResult(u8, []const u8) {
+pub fn seqeunced(input: []const u8, parsers: []const char_parser.CharParser) char_parser.CharParser.ParserResult {
     var last_result: u8 = undefined;
     var remain: []const u8 = input;
 
@@ -24,7 +24,7 @@ pub fn main() !void {
 
     defer _ = gpa.deinit();
 
-    var allocator = &gpa.allocator();
+    const allocator = gpa.allocator();
 
     const result = try char_parser.alpha().invoke("ABC");
     std.debug.print("{}\n", .{result});

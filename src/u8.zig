@@ -1,42 +1,45 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const defs = @import("defs.zig");
+const parsers = @import("parsers.zig");
 
-pub const CharParser = defs.Parser([]const u8, u8, []const u8);
+pub const CharParser = parsers.Parser([]const u8, u8, []const u8);
 
-fn first_char(input: []const u8) defs.ParserError!u8 {
+fn slice(input: []const u8) CharParser.ParserResult {
+    return .{
+        .output = input[0],
+        .remain = input[1..],
+    };
+}
+
+fn first_char(input: []const u8) parsers.ParserError!u8 {
     if (input.len > 0) {
         return input[0];
     } else {
-        return defs.ParserError.IncompleteData;
+        return parsers.ParserError.IncompleteData;
     }
 }
 
-fn _tag(input: []const u8, ctx: ?*anyopaque) defs.ParserResult(u8, []const u8) {
-    if (@ptrCast(*u8, ctx).* == try first_char(input)) {
-        return .{
-            .output = input[0],
-            .remain = input[1..],
-        };
-    } else {
-        return defs.ParserError.InvalidData;
+fn _tag(input: []const u8, ctx: ?[]align(16) u8) CharParser.ParserResult {
+    if (parsers.cast_deref(u8, ctx)) |tag_ctx| {
+        if (tag_ctx == try first_char(input)) {
+            return slice(input);
+        }
     }
+
+    return parsers.ParserError.InvalidData;
 }
 
-pub fn tag(allocator: *const Allocator, char: u8) !CharParser {
+pub fn tag(allocator: Allocator, char: u8) !CharParser {
     return try CharParser.init_delegated(allocator, char, _tag);
 }
 
-fn _alpha(input: []const u8, _: ?*anyopaque) defs.ParserResult(u8, []const u8) {
+fn _alpha(input: []const u8, _: ?[]align(16) u8) CharParser.ParserResult {
     switch (try first_char(input)) {
         'A'...'Z', 'a'...'z' => {
-            return .{
-                .output = input[0],
-                .remain = input[1..],
-            };
+            return slice(input);
         },
         else => {
-            return defs.ParserError.InvalidData;
+            return parsers.ParserError.InvalidData;
         },
     }
 }
