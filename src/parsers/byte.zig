@@ -50,18 +50,3 @@ fn _tag(input: []const u8, ctx: ?[]align(16) u8) ByteParser.ParserResult {
 pub fn tag(allocator: Allocator, char: u8) !ByteParser {
     return try ByteParser.initDelegated(allocator, char, _tag);
 }
-
-fn _alpha(input: []const u8, _: ?[]align(16) u8) ByteParser.ParserResult {
-    switch (try firstChar(input)) {
-        'A'...'Z', 'a'...'z' => {
-            return slice(input);
-        },
-        else => {
-            return parsers.ParserError.InvalidData;
-        },
-    }
-}
-
-pub fn alpha() ByteParser {
-    return ByteParser.initImmediate(_alpha);
-}
