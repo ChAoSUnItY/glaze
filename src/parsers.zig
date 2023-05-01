@@ -7,12 +7,6 @@ pub const ParserError = error{
     InvalidData,
 };
 
-pub fn ParserContext(comptime T: type) type {
-    return struct {
-        data: T,
-    };
-}
-
 pub fn ExperimentParser(comptime I: type, comptime O: type, comptime R: type) type {
     return struct {
         const Self = @This();
