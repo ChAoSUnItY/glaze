@@ -36,7 +36,7 @@ pub fn ExperimentParser(comptime I: type, comptime O: type, comptime R: type) ty
 
             const parserImpl = struct {
                 fn parse(input: I, context: ?[]align(16) u8) ParserResult {
-                    return @call(.{}, parser, .{ input, @ptrCast(*@TypeOf(data), context.?.ptr).* });
+                    return @call(.{ .modifier = .always_inline }, parser, .{ input, @ptrCast(*@TypeOf(data), context.?.ptr).* });
                 }
             };
 
