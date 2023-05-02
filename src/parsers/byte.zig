@@ -23,30 +23,26 @@ fn firstChar(input: []const u8) parsers.ParserError!u8 {
 
 // Parser Definitions
 
-fn _satisfy(input: []const u8, ctx: ?[]align(16) u8) ByteParser.ParserResult {
-    if (parsers.castDeref(*const fn (u8) bool, ctx)) |satisfyCtx| {
-        if (satisfyCtx(try firstChar(input))) {
-            return slice(input);
-        }
+fn _satisfy(input: []const u8, ctx: *const fn (u8) bool) ByteParser.ParserResult {
+    if (ctx(try firstChar(input))) {
+        return slice(input);
     }
 
     return parsers.ParserError.InvalidData;
 }
 
-pub fn satisfy(allocator: Allocator, predicate: *const fn (u8) bool) !ByteParser {
-    return try ByteParser.initDelegated(allocator, predicate, _satisfy);
+pub fn satisfy(allocator: Allocator, comptime predicate: *const fn (u8) bool) !ByteParser {
+    return try ByteParser.init(allocator, predicate, _satisfy);
 }
 
-fn _tag(input: []const u8, ctx: ?[]align(16) u8) ByteParser.ParserResult {
-    if (parsers.castDeref(u8, ctx)) |tagCtx| {
-        if (tagCtx == try firstChar(input)) {
-            return slice(input);
-        }
+fn _tag(input: []const u8, ctx: u8) ByteParser.ParserResult {
+    if (ctx == try firstChar(input)) {
+        return slice(input);
     }
 
     return parsers.ParserError.InvalidData;
 }
 
-pub fn tag(allocator: Allocator, char: u8) !ByteParser {
-    return try ByteParser.initDelegated(allocator, char, _tag);
+pub fn tag(allocator: Allocator, comptime char: u8) !ByteParser {
+    return try ByteParser.init(allocator, char, _tag);
 }
