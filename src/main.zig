@@ -5,10 +5,11 @@ const testing = std.testing;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
 
-    defer _ = gpa.deinit();
+    defer _ = arena.deinit();
 
-    const allocator = gpa.allocator();
+    const allocator = arena.allocator();
 
     const result = try (try bytes_parser.tag(allocator, 'A')).parse("ABC");
     std.debug.print("{}\n", .{result});

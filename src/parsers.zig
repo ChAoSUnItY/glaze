@@ -1,12 +1,42 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+/// ParserError represents a set of invalid states of `Parser`'s parser function.
 pub const ParserError = error{
-    Unimplemented,
     IncompleteData,
     InvalidData,
 };
 
+/// Parser is a general purpose struct to parse a series of data with predefined context and parser function.
+///
+/// ## Type Parameters
+/// `I`: Input type
+/// `O`: Output type (or transformed type)
+/// `R`: Remaining type
+///
+/// ## Allocator and context data
+///
+/// Due to the implementation limitation, to discard additional generic type from `Parser` struct and stores,
+/// context data, `Parser` requires an `Allocator` to store context data onto heap, this is only required when
+/// context data is not void.
+///
+/// To avoid multiple `Parser` instance initialization, `Parser` does not free context data on invocation of
+/// `Parser#parse(Self, I) ParserResult`, instead, `Parser` has function `deinit` to allow user manually decide
+/// when to free the context data.
+///
+/// This could be handy when a `Parser` is used in different functions, we suggest using an `ArenaAllocator` with
+/// `GeneralPurposeAllocator` as child allocator, to free at once without any safety issue; or using an
+/// `ArenaAllocator` with `c_allocator` as child allocator to speed up allocation.
+///
+/// ## Design notes
+///
+/// This implementation has multiple benefits:
+/// 1. Chaining multiple parsers that accepts same types is possible (without designating the context data type)
+/// 2. Parser function is defined in a user friendly way so user don't have to cast a pointer into desired context
+///    data type.
+///
+/// But also comes with several limitations:
+/// 1. Due to safety and implementation, context data type and parser function must be known at compile time.
 pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
     return struct {
         const Self = @This();
@@ -18,8 +48,8 @@ pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
         allocator: ?Allocator,
         parser: ParserFunction,
 
-        /// Inits `Parser` while having parser function accpets unsized string literal, this is useful when parameter `parser` requires unsized string
-        pub fn initStringLiteralCtx(allocator: Allocator, comptime parserCtx: []const u8, comptime parser: *const fn (I, []const u8) ParserResult) Allocator.Error!Self {
+        /// Inits `Parser` by specifying type of `parserCtx`.
+        pub fn initByType(comptime T: type, allocator: Allocator, comptime parserCtx: T, comptime parser: *const fn (I, T) ParserResult) Allocator.Error!Self {
             return Self.init(allocator, parserCtx, parser);
         }
 
@@ -38,8 +68,6 @@ pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
             };
         }
 
-        /// Inits `Parser` with parameter `parserCtx` and `parser`, parameter `parser`'s 2nd parameter type is based on parameter `parserCtx`, therefore
-        /// no direct pointer casting is required in parser function implementation.
         pub fn init(allocator: Allocator, comptime parserCtx: anytype, comptime parser: *const fn (I, @TypeOf(parserCtx)) ParserResult) Allocator.Error!Self {
             const T = @TypeOf(parserCtx);
             const parserCtxSlice = try allocator.alignedAlloc(u8, 16, @sizeOf(T));
@@ -60,7 +88,6 @@ pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
         }
 
         pub fn parse(self: *const Self, input: I) ParserResult {
-            defer self.deinit();
             return try self.parser(input, self.parserCtx);
         }
 
