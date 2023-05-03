@@ -54,7 +54,7 @@ pub fn Parser(comptime I: type, comptime O: type, comptime R: type) type {
         }
 
         /// Inits `Parser` without any predefined context.
-        pub fn initImmediateCtx(parser: *const fn (I, void) ParserResult) Self {
+        pub fn initImmediateCtx(comptime parser: *const fn (I, void) ParserResult) Self {
             const parserImpl = struct {
                 fn parse(input: I, _: ?[]align(16) u8) ParserResult {
                     return @call(.{ .modifier = .always_inline }, parser, .{ input, void{} });
