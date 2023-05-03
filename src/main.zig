@@ -1,6 +1,6 @@
 const std = @import("std");
-const bytes_parser = @import("parsers/byte.zig");
-const bytes_predicate = @import("predicates/byte.zig");
+const bytes_parser = @import("byte/parsers.zig");
+const bytes_predicate = @import("byte/predicates.zig");
 const testing = std.testing;
 
 pub fn main() !void {

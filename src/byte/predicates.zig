@@ -1,4 +1,5 @@
 const std = @import("std");
+const testing = std.testing;
 
 pub fn isAlpha(char: u8) bool {
     switch (char) {
@@ -30,5 +31,19 @@ pub fn isHex(char: u8) bool {
         else => {
             return false;
         },
+    }
+}
+
+test "Test byte predicates" {
+    var char: u8 = 'A';
+
+    while (char != 'Z') : (char += 1) {
+        try testing.expect(isAlpha(char));
+    }
+
+    char = 'a';
+
+    while (char != 'z') : (char += 1) {
+        try testing.expect(isAlpha(char));
     }
 }
