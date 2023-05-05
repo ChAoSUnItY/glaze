@@ -49,6 +49,21 @@ pub fn isOct(char: u8) bool {
     }
 }
 
+pub fn isSpace(char: u8) bool {
+    switch (char) {
+        '\t', '\n', 0x0B, 0x0C, '\r', ' ', 0x85, 0xA0 => {
+            return true;
+        },
+        else => {
+            return false;
+        },
+    }
+}
+
+pub fn isNewLine(char: u8) bool {
+    return char == 0x0A;
+}
+
 // Tests
 
 fn genRange(comptime start: u8, comptime end: u8) [end - start + 1]u8 {
