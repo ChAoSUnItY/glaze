@@ -23,9 +23,24 @@ pub fn isDigit(char: u8) bool {
     }
 }
 
+pub fn isAlphaNumberic(char: u8) bool {
+    return isAlpha(char) or isDigit(char);
+}
+
 pub fn isHex(char: u8) bool {
     switch (char) {
         '0'...'9', 'A'...'F', 'a'...'f' => {
+            return true;
+        },
+        else => {
+            return false;
+        },
+    }
+}
+
+pub fn isOct(char: u8) bool {
+    switch (char) {
+        '0'...'7' => {
             return true;
         },
         else => {
